@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - CivicAI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar d-flex justify-between items-center">
+        <div class="navbar-brand">
+            <i class="bi bi-building"></i>
+            CivicAI Admin
+        </div>
+        <div class="navbar-nav">
+            <span class="user-info">Welcome, {{ session.user_name }}! (Admin)</span>
+            <div class="nav-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-link">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('admin.dashboard') }}" class="active"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('admin.view_complaints') }}"><i class="bi bi-list-check"></i> All Complaints</a></li>
+            <li><a href="{{ url_for('admin.analytics') }}"><i class="bi bi-graph-up"></i> Analytics</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
+            <p style="color: #6b7280;">Real-time city complaint management</p>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="grid grid-4" style="margin-bottom: 2rem;">
+            <div class="stat-card">
+                <div class="stat-number">{{ total }}</div>
+                <div class="stat-label">Total Complaints</div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-number">{{ submitted }}</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-number">{{ in_progress }}</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-number">{{ resolved }}</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </div>
+
+        <!-- Critical Issues Alert -->
+        <div class="card" style="background: #fef2f2; border-left: 4px solid #dc2626; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="bi bi-exclamation-triangle" style="font-size: 2rem; color: #dc2626;"></i>
+                <div>
+                    <h4 style="margin: 0; color: #dc2626;">Critical Priority Complaints</h4>
+                    <p style="margin: 0.5rem 0 0 0; color: #666;">{{ critical }} complaints require immediate attention</p>
+                </div>
+                <a href="{{ url_for('admin.view_complaints', priority='Critical') }}" class="btn btn-danger btn-sm" style="margin-left: auto;">
+                    View All
+                </a>
+            </div>
+        </div>
+
+        <!-- High Priority -->
+        <div class="card" style="background: #fef3c7; border-left: 4px solid #d97706; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="bi bi-exclamation-circle" style="font-size: 2rem; color: #d97706;"></i>
+                <div>
+                    <h4 style="margin: 0; color: #d97706;">High Priority Complaints</h4>
+                    <p style="margin: 0.5rem 0 0 0; color: #666;">{{ high }} complaints need attention within 3-5 days</p>
+                </div>
+                <a href="{{ url_for('admin.view_complaints', priority='High') }}" class="btn btn-warning btn-sm" style="margin-left: auto;">
+                    View All
+                </a>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-2" style="margin-bottom: 1.5rem;">
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;">Complaints by Category</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom: 1rem;">Complaints by Department</h3>
+                <canvas id="departmentChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Complaints -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Recent Complaints</h3>
+                <a href="{{ url_for('admin.view_complaints') }}" class="btn btn-primary btn-sm">View All</a>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Citizen</th>
+                        <th>Submitted</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for complaint in recent %}
+                        <tr>
+                            <td><strong>{{ complaint.complaint_id }}</strong></td>
+                            <td>{{ complaint.title[:40] }}...</td>
+                            <td>{{ complaint.category }}</td>
+                            <td>
+                                <span class="badge priority-{{ complaint.priority.lower() }}">
+                                    {{ complaint.priority }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge status-{{ complaint.status.lower().replace(' ', '-') }}">
+                                    {{ complaint.status }}
+                                </span>
+                            </td>
+                            <td>{{ complaint.name }}</td>
+                            <td>{{ complaint.created_at.strftime('%b %d') if complaint.created_at else 'N/A' }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.view_complaint', complaint_id=complaint.complaint_id) }}" 
+                                   class="btn btn-primary btn-sm">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Category Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for cat in categories %}'{{ cat.category }}'{{ "," if not loop.last }}{% endfor %}],
+                datasets: [{
+                    data: [{% for cat in categories %}{{ cat.count }}{{ "," if not loop.last }}{% endfor %}],
+                    backgroundColor: ['#1e40af', '#3b82f6', '#059669', '#10b981', '#f59e0b', '#d97706', '#dc2626', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Department Chart
+        const deptCtx = document.getElementById('departmentChart').getContext('2d');
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for dept in departments %}'{{ dept.department }}'{{ "," if not loop.last }}{% endfor %}],
+                datasets: [{
+                    label: 'Number of Complaints',
+                    data: [{% for dept in departments %}{{ dept.count }}{{ "," if not loop.last }}{% endfor %}],
+                    backgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

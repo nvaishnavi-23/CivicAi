@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Complaints - CivicAI</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar d-flex justify-between items-center">
+        <div class="navbar-brand">
+            <i class="bi bi-building"></i>
+            CivicAI
+        </div>
+        <div class="navbar-nav">
+            <span class="user-info">Welcome, {{ session.user_name }}!</span>
+            <div class="nav-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-link">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <ul class="sidebar-menu">
+            <li><a href="{{ url_for('citizen.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+            <li><a href="{{ url_for('citizen.submit_complaint') }}"><i class="bi bi-plus-circle"></i> Report Issue</a></li>
+            <li><a href="{{ url_for('citizen.my_complaints') }}" class="active"><i class="bi bi-list-check"></i> My Complaints</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <div>
+                <h1><i class="bi bi-list-check"></i> My Complaints</h1>
+                <p style="color: #6b7280;">Track and manage all your submitted complaints</p>
+            </div>
+            <a href="{{ url_for('citizen.submit_complaint') }}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> Report New Issue
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="card">
+            <form method="GET" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <select name="status" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        {% for status in statuses %}
+                            <option value="{{ status }}" {% if current_status == status %}selected{% endif %}>{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <select name="category" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <!-- Complaints List -->
+        {% if complaints %}
+            <div style="display: grid; gap: 1.5rem; margin-top: 1.5rem;">
+                {% for complaint in complaints %}
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem;">
+                                    <h4 style="margin: 0;">{{ complaint.title }}</h4>
+                                    <span class="badge status-{{ complaint.status.lower().replace(' ', '-') }}">{{ complaint.status }}</span>
+                                    <span class="badge priority-{{ complaint.priority.lower() }}">{{ complaint.priority }}</span>
+                                </div>
+                                <p style="margin: 0.5rem 0; font-size: 0.9rem;"><strong>ID:</strong> {{ complaint.complaint_id }}</p>
+                                <p style="margin: 0.5rem 0; font-size: 0.9rem;"><strong>Category:</strong> {{ complaint.category }}</p>
+                                <p style="margin: 0.5rem 0; font-size: 0.9rem;"><strong>Department:</strong> {{ complaint.department }}</p>
+                                <p style="margin: 0.5rem 0; font-size: 0.9rem;"><strong>Location:</strong> {{ complaint.address }}</p>
+                                <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6b7280;">
+                                    <i class="bi bi-calendar"></i> Submitted: 
+                                    {{ complaint.created_at.strftime('%b %d, %Y %I:%M %p') if complaint.created_at else 'N/A' }}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <a href="{{ url_for('citizen.complaint_details', complaint_id=complaint.complaint_id) }}" class="btn btn-primary btn-sm">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+
+                        {% if complaint.admin_remarks %}
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; background: #f0f9ff; padding: 1rem; border-radius: 0.5rem;">
+                                <h6 style="margin: 0 0 0.5rem 0;"><i class="bi bi-chat-left-text"></i> Admin Remarks:</h6>
+                                <p style="margin: 0; font-size: 0.9rem;">{{ complaint.admin_remarks }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="card text-center" style="padding: 3rem;">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #d1d5db; margin-bottom: 1rem;"></i>
+                <h3 style="color: #6b7280; margin-bottom: 1rem;">No Complaints Yet</h3>
+                <p style="color: #9ca3af; margin-bottom: 1.5rem;">You haven't submitted any complaints yet.</p>
+                <a href="{{ url_for('citizen.submit_complaint') }}" class="btn btn-primary">
+                    <i class="bi bi-plus"></i> Report Your First Issue
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
